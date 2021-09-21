@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <com.google.android.material.chip.ChipGroup
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:layout_editor_absoluteX="155dp"
+        tools:layout_editor_absoluteY="312dp">
+
+    </com.google.android.material.chip.ChipGroup>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/openButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="322dp"
+        android:layout_marginEnd="34dp"
+        android:layout_marginBottom="33dp"
+        android:clickable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@android:drawable/ic_input_add" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="275dp"
+        android:layout_height="275dp"
+        android:layout_marginStart="68dp"
+        android:layout_marginBottom="228dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@android:drawable/ic_menu_help" />
+
+    <EditText
+        android:id="@+id/imageText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="100dp"
+        android:layout_marginBottom="117dp"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:text="Image Text"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
