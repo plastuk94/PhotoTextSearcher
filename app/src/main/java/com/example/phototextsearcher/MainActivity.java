@@ -34,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     private Bitmap          imgBitmap;
     private Bitmap          imgBitmap2;
     private ContentResolver cr;
+    private Cursor          allImages;
+    private Cursor          allImages2;
     private File            imgFile;
     private File            imgFile2;
     private ImageView       imgView;
@@ -48,10 +50,6 @@ public class MainActivity extends AppCompatActivity {
     private Thread          workerThread; //TODO: Make the Runnable in these into an actual class,
     private Thread          workerThread2;//TODO: so I can create as many threads as needed.
     private Uri             uri;
-
-    public static synchronized void incrementCount(int count) {
-        count++;
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
                 uri = MediaStore.Images.Media.getContentUri("external");
                 projection    = new String[]{MediaStore.Images.Media.DATA};
 
-                Cursor allImages = cr.query(uri, projection, null, null, null);
+                allImages = cr.query(uri, projection, null, null, null);
 
                 int count  = allImages.getCount();
                 int countA = (count / 2);
@@ -97,7 +95,6 @@ public class MainActivity extends AppCompatActivity {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-
                         dir.mkdirs();
                         tess.init(datapath, "eng");
 
@@ -108,43 +105,43 @@ public class MainActivity extends AppCompatActivity {
                         progressView            = (TextView) findViewById(R.id.progressView);
                         imageCount              = new AtomicInteger(1);
 
-                        if (true) {
-                            while (allImages.moveToNext()) {
-                                int columnIndex = allImages.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-                                String path     = allImages.getString(columnIndex);
+                        while (allImages.moveToNext()) {
+                            int columnIndex = allImages.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                            String path     = allImages.getString(columnIndex);
 
-                                imgFile = new  File(path);
+                            imgFile = new  File(path);
 
-                                if (imgFile.exists()) {
-                                    if ((path.contains("Download") || path.contains("Facebook"))) {
-                                        progressView.post(new Runnable() {
+                            if (imgFile.exists()) {
+                                if ((path.contains("Download") || path.contains("Facebook"))) {
+                                    progressView.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            final int i = imageCount.get();
+                                            progressView.setText("Scanning image "+i+" out of "+count+".");
+                                        }
+                                    });
+
+                                    tess.setImage(imgFile);
+                                    String ocrText = tess.getUTF8Text().toLowerCase();
+                                    Log.d("Thread #1 ocrText",ocrText+"\nCount="+count+",CountA="+countA+",countB="+countB+",imagecount="+imageCount);
+                                    imageCount.incrementAndGet();
+                                    semThread2Ready.release();
+                                    if (ocrText.contains(imageText)) {
+                                        allImages.close();
+                                        allImages2.close();
+                                        workerThread2.interrupt();
+                                        imgBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                                        Log.i("Success","Found match: "+imgFile.getName());
+                                        imgView.post(new Runnable() {
                                             @Override
                                             public void run() {
-                                                final int i = imageCount.get();
-                                                progressView.setText("Scanning image "+i+" out of "+count+".");
+                                                imgView.setImageBitmap(imgBitmap);
+                                                progressView.setText(progressView.getText()+
+                                                        "\nFound match: "+path);
                                             }
                                         });
-
-                                        tess.setImage(imgFile);
-                                        String ocrText = tess.getUTF8Text().toLowerCase();
-                                        Log.d("Thread #1 ocrText",ocrText+"\nCount="+count+",CountA="+countA+",countB="+countB+",imagecount="+imageCount);
-                                        imageCount.incrementAndGet();
-                                        semThread2Ready.release();
-                                        if (ocrText.contains(imageText)) {
-                                            workerThread2.interrupt();
-                                            imgBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-                                            Log.i("Success","Found match: "+imgFile.getName());
-                                            imgView.post(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    imgView.setImageBitmap(imgBitmap);
-                                                    progressView.setText(progressView.getText()+
-                                                            "\nFound match: "+path);
-                                                }
-                                            });
-                                            workerThread.interrupt();
-                                            break;
-                                        }
+                                        workerThread.interrupt();
+                                        break;
                                     }
                                 }
                             }
@@ -166,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
                         semThread2Ready.release();
                         System.out.println("Thread #2 initialized");
                         //Cursor allImages2 = allImages; //TODO clone / serialize from allImages
-                        Cursor allImages2 = cr.query(uri, projection, null, null, null);
+                        allImages2 = cr.query(uri, projection, null, null, null);
                         System.out.println("Thread #2 retrieved cursor: "+allImages2.getColumnName(0));
                         allImages2.moveToPosition(countA);
 
@@ -184,6 +181,8 @@ public class MainActivity extends AppCompatActivity {
 
 
                                     if (ocrText2.contains(imageText)) {
+                                        allImages.close();
+                                        allImages2.close();
                                         workerThread.interrupt();
                                         imgBitmap2 = BitmapFactory.decodeFile(imgFile2.getAbsolutePath());
                                         Log.i("Success","Found match: "+imgFile2.getName());
