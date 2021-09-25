@@ -1,6 +1,8 @@
 package com.example.phototextsearcher;
 
+import android.app.Activity;
 import android.content.ContentResolver;
+import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,14 +10,21 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.googlecode.tesseract.android.TessBaseAPI;
@@ -33,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Bitmap          imgBitmap;
     private Bitmap          imgBitmap2;
+    private Button          openFileButton;
+    private Boolean         isImgFile1;
     private ContentResolver cr;
     private Cursor          allImages;
     private Cursor          allImages2;
@@ -50,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
     private Thread          workerThread; //TODO: Make the Runnable in these into an actual class,
     private Thread          workerThread2;//TODO: so I can create as many threads as needed.
     private Uri             uri;
+
+    public MainActivity() {
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,6 +141,7 @@ public class MainActivity extends AppCompatActivity {
                                     imageCount.incrementAndGet();
                                     semThread2Ready.release();
                                     if (ocrText.contains(imageText)) {
+                                        isImgFile1 = true;
                                         allImages.close();
                                         allImages2.close();
                                         workerThread2.interrupt();
@@ -138,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
                                                 imgView.setImageBitmap(imgBitmap);
                                                 progressView.setText(progressView.getText()+
                                                         "\nFound match: "+path);
+                                                openFileButton.setVisibility(View.VISIBLE);
                                             }
                                         });
                                         workerThread.interrupt();
@@ -181,6 +197,7 @@ public class MainActivity extends AppCompatActivity {
 
 
                                     if (ocrText2.contains(imageText)) {
+                                        isImgFile1 = false;
                                         allImages.close();
                                         allImages2.close();
                                         workerThread.interrupt();
@@ -193,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
                                                 imgView.setImageBitmap(imgBitmap2);
                                                 progressView.setText(progressView.getText()+
                                                         "\nFound match: "+path2);
+                                                openFileButton.setVisibility(View.VISIBLE);
                                             }
                                         });
                                     }
@@ -203,6 +221,40 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
                 workerThread2.start();
+            }
+        });
+
+        openFileButton = (Button) findViewById(R.id.openFileButton);
+
+        ActivityResultLauncher<Intent> openActivityResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            Intent data = result.getData();
+                        }
+                    }
+                });
+
+        openFileButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                    Intent intent = new Intent();
+                    Uri    fileUri;
+                    if (isImgFile1) {
+                        fileUri = FileProvider.getUriForFile(getApplicationContext(),
+                                getApplicationContext().getPackageName()+".provider",
+                                imgFile);
+                    } else {
+                        fileUri = FileProvider.getUriForFile(getApplicationContext(),
+                                getApplicationContext().getPackageName()+".provider",
+                                imgFile2);
+                    }
+                    System.out.println(fileUri.toString());
+                    intent = new Intent(Intent.ACTION_VIEW,fileUri);
+                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    openActivityResultLauncher.launch(intent);
             }
         });
     }
